@@ -16,12 +16,11 @@
  * 
  * Damit auch der Lastenaufzug vor Ort Manuell bedient werden kann, sind auch noch 2 Taster (Rauf, Runter) am Kasten montiert.
  * 
- * Da es sehr viel mit 433Mhz Fernbedinung gibt, habe ich zuerst den Code von der FB Ausgelesen und es in die Konditionen im Loop
- * eingebaut.
- * Zum Empfangen hat sich die Lib RC-Switch am besten bewährt.
+ * Da es sehr viel mit 433Mhz Fernbedinung gibt, habe ich zuerst den Code von der FB Ausgelesen und es in die Konditionen eingebaut.
+ * Zum Empfangen hat sich die Lib RemoteSwitch am besten bewährt.
  * 
- * Da die Relais eher Träge sind, wird zur Sicherheit zwischen dem Umschalten 150ms gewartet.
- * Es würde zwar durch die Verdrahtung nichts machen wenn beide Relais aktiv sind, aber man muss es ja nicht fordern.
+ * Da die Relais eher Träge sind, wird zur Sicherheit zwischen dem Umschalten 80ms gewartet.
+ * Es würde zwar durch die Verdrahtung nichts machen wenn beide Relais aktiv sind, aber man muss es ja nicht herausfordern.
  * 
  * 
  * ATtiny85:
@@ -68,22 +67,29 @@
  * EINES DELIKTES ODER ANDERS IM ZUSAMMENHANG MIT DER SOFTWARE ODER SONSTIGER VERWENDUNG DER SOFTWARE ENTSTANDEN.
  * 
  */
-#include <RCSwitch.h>
-RCSwitch mySwitch = RCSwitch();
-int RO = 1; // LOW = Versorge Relais (VCC) mit Spannung HIGH = schalte Spannung ab (PNP Transistor)
-int S1 = 4; // Relais 1
-int S2 = 3; // Relais 2
+#include <RemoteReceiver.h>
+char version = "1.2";
+int RO = PB1; // LOW = Versorge Relais (VCC) mit Spannung HIGH = schalte Spannung ab (PNP Transistor)
+int S1 = PB4; // Relais 1
+int S2 = PB3; // Relais 2
+/*
+int RO = 8;
+int S1 = 9;
+int S2 = 10;
+*/
 // da bei ATtiny85 bereits alle Pins gebraucht werden, muessen wir uns mit einem Boolean Feld zufrieden geben.
 // die Boolean Felder sind fuer uns sozusagen der Ersatz von 2 zusaetzlichen Input Pins
-boolean S1_State = false;
-boolean S2_State = false;
-boolean RO_State = false;
+boolean S1State=false;
+boolean S2State=false;
+boolean ROState=false;
 char mode[4]; // ein Reservierter Speicher fuer Modus ON / OFF
 unsigned long relaistime = 60000L; // Schalte die Relais Versorgungsspannung nach 1min. ab.
 // Wie lange das Relais den Status ON hat bis es wieder abgeschalten wird. Somit kann es
 // einen bestimmten Weg zuruecklegen.
 // unser Lastenaufzug schaft 6m pro Minute somit habe ich es auf 1m selbstfahren beschraenkt
-unsigned long worktime = 5000;
+unsigned long worktime = 5000L;
+
+unsigned long task2 = 0;
 
 void setup() {
   pinMode(RO, OUTPUT);
@@ -93,110 +99,116 @@ void setup() {
   digitalWrite(S1, HIGH);
   digitalWrite(S2, HIGH);
   digitalWrite(RO, HIGH); // Pin auf HIGH Setzen
-  // Setze Status auf false
-  S1_State = false;
-  S2_State = false;
-  RO_State = false; // setze auf true da es auf HIGH gesetzt wurde
-  mySwitch.enableReceive(0); // 0 => Pin 2
+  
+  RemoteReceiver::init(0, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
+
+  //only for tests
+  //Serial.begin(19200);
+  //Serial.println("Start programm");
 }
 
 void SWRelais(char mode){
   /*
-   * Versorgt das Relais mit Spannung ueber einen PNP Transistor
+   * Powerswitch for relais modul
    */
   if (mode == "ON") {
-    if (RO_State == false) {
+    if (ROState == false) {
       // Schalte Versorgungspsannung am Relais EIN
       digitalWrite(RO, LOW);
-      RO_State = true;
-    } else if (RO_State == true) {
+      ROState=true;
+    } else if (ROState == true) {
       // do nothing
     }
   } else {
     // Sicherheitshalber bei Aufruf das Relais ausschalten
     digitalWrite(RO, HIGH);
-    RO_State = false;
+    ROState=false;
   }
+  //Serial.println(ROState);
 }
 
 void SecRelais1(char mode){
   /*
-   * Secure Schalt Logic fuer Relais 1
+   * Relais 1 with state check
    */
   if (mode == "ON") {
-    if (S1_State == false && S2_State == false) {
-      S1_State = true;
+    if (S1State == false && S2State == false) {
+      S1State=true;
       digitalWrite(S1, LOW);
-    } else if (S1_State == false && S2_State == true) {
+    } else if (S1State == false && S2State == false) {
       digitalWrite(S2, HIGH);
-      S2_State = false;
+      S2State=false;
       delay(80);
-      S1_State = true;
+      S1State=true;
       digitalWrite(S1, LOW);
-    } else if (S1_State == true && S2_State == false) {
+    } else if (S1State == true && S2State == false) {
       // do nothing
     }
   } else {
     digitalWrite(S1, HIGH);
-    S1_State = false;
+    S1State=false;
   }
+  //Serial.println(S1State);
 }
 
 void SecRelais2(char mode){
   /*
-   * Secure Schalt Logic fuer Relais 2
+   * Relais 2 with state check
    */
   if (mode == "ON") {
-    if (S2_State == false && S1_State == false) {
-      S2_State = true;
+    if (S2State == false && S1State == false) {
+      S2State=true;
       digitalWrite(S2, LOW);
-    } else if (S2_State == false && S1_State == true) {
+    } else if (S2State == false && S1State == true) {
       digitalWrite(S1, HIGH);
-      S1_State = false;
+      S1State=false;
       delay(80);
-      S2_State = true;
+      S2State=true;
       digitalWrite(S2, LOW);
-    } else if (S2_State == true && S1_State == false) {
+    } else if (S2State == true && S1State == false) {
       // do nothing
     }
   } else {
     digitalWrite(S2, HIGH);
-    S2_State = false;
+    S2State=false;
   }
+  //Serial.println(S2State);
 }
 
-unsigned long task2 = 0;
+//Callback function is called only when a valid code is received.
+char checkCode(unsigned long receivedCode, unsigned int period){
+  //Note: interrupts are disabled. You can re-enable them if needed.
+
+  //print received code
+  //Serial.print("Code = ");
+  //Serial.println(receivedCode);
+
+  if (receivedCode == 531272){
+    task2 = millis();
+    //Serial.println("Switch Relais 1 ON");
+    SWRelais("ON");
+    SecRelais1("ON");
+  
+  } else if (receivedCode == 531380){
+    //Serial.println("Switch Relais 2 ON");
+    task2 = millis();
+    SWRelais("ON");
+    SecRelais2("ON");
+  
+  } else if ( receivedCode == 531276 || receivedCode == 531436 || receivedCode == 531384){
+    //Serial.println("Switch Relais 1 and 2 OFF");
+    SecRelais2("OFF");
+    SecRelais1("OFF");
+  }
+  
+}
+
 void loop() {
   unsigned long currmillis = millis();
   
-  // Betrieb ueber eine 433Mhz Fernbedienung mit den Kanaelen C & D
-  if (mySwitch.available()) {
-    int value = mySwitch.getReceivedValue();
-    if ( value == 0 ) {
-      //do nothing
-    } else {
-      unsigned long rec_value = mySwitch.getReceivedValue();
-      if (rec_value == 5592145 || rec_value == 5592151 || rec_value == 5570560) {
-        task2 = millis();
-        SWRelais("ON");
-        SecRelais1("ON");
-      
-      } else if (rec_value == 5592337) {
-        task2 = millis();
-        SWRelais("ON");
-        SecRelais2("ON");
-      
-      } else if (rec_value == 5592148 || rec_value == 5592064 || rec_value == 5592340 || rec_value == 5592407 || rec_value == 5570560) {
-        SecRelais2("OFF");
-        SecRelais1("OFF");
-      }
-    }
-    mySwitch.resetAvailable();
-  }
-  
-  // Wenn die Zeit (worktime) kleiner als die Vergangene Zeit ist, schalte ab.
   if ((unsigned long)(currmillis - task2) >= worktime) {
-    if ( S1_State == true || S2_State == true ) {
+    if ( S1State == true || S2State == true ) {
+      //Serial.println("Switch Relais after worktime OFF");
       SecRelais1("OFF");
       SecRelais2("OFF");
     }
@@ -204,7 +216,8 @@ void loop() {
 
   // schalte das Relais nach eingestellter Zeit aus
   if ((unsigned long)(currmillis - task2) >= relaistime) {
-    if (RO_State == true) {
+    if (ROState == true) {
+      //Serial.println("switch Relais OFF");
       SWRelais("OFF");
     }
   }
