@@ -40,6 +40,11 @@ Umschalten 80ms gewartet.
 Es würde zwar durch die Verdrahtung nichts machen wenn beide Relais 
 aktiv sind, aber man muss es ja nicht fordern.
 
+Kurze Funktionsvorführung
+
+[![Funktionstest](https://youtu.be/YJzWT5fqY5Q/3.JPG)(https://youtu.be/YJzWT5fqY5Q)
+
+Werde ein Video dazu noch nachreichen, sobald es etwas Wärmer ist. ;-)
 
 ## Benötigte Teile
 
