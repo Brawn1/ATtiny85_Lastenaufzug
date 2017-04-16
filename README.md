@@ -104,9 +104,9 @@ einem Boolean Feld zufrieden geben.
 Die Boolean Felder sind fuer uns sozusagen der Ersatz von 2 
 zusaetzlichen Input Pins.
 ```Arduino
-boolean S1_State = false;
-boolean S2_State = false;
-boolean RO_State = false;
+boolean S1State = false;
+boolean S2State = false;
+boolean ROState = false;
 ```
 
 Schalte die Relais Versorgungsspannung nach 1min. ab.
@@ -119,7 +119,7 @@ Somit kann es einen bestimmten Weg zuruecklegen.
 Unser Lastenaufzug schaft 6m pro Minute somit habe ich es auf 1m 
 selbstfahren beschraenkt 
 ```Arduino
-unsigned long worktime = 5000;
+unsigned long worktime = 5000L;
 ```
 
 Zur Sicherheit die Pins sofort auf HIGH setzen da das Relais mit LOW 
@@ -131,7 +131,7 @@ void setup() {
   digitalWrite(S2, HIGH);
   digitalWrite(RO, HIGH);
   ...
-  mySwitch.enableReceive(0); // 0 => Pin 2
+  RemoteReceiver::init(0, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
 }
 ```
 
@@ -140,7 +140,7 @@ Aktiviere den Empfang auf den Interrupt *Pin0* => ist bei Arduino Pin2.
 void setup() {
   ...
   ...
-  mySwitch.enableReceive(0); // 0 => Pin 2
+  RemoteReceiver::init(0, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
 }
 ```
 
@@ -156,5 +156,13 @@ Das Offizielle Datenblatt von Atmel
 
 ## Quellen
 
-* [RC-Switch](https://github.com/sui77/rc-switch)
+* [RemoteSwitch Source](https://drive.google.com/file/d/0B4k-iADFKitTb3U0aHpLaEVqYXc/edit)
 * [Atmel AtTiny85](http://www.atmel.com/devices/attiny85.aspx)
+* [ATtiny Bibliothek](http://drazzy.com/package_drazzy.com_index.json)
+
+## Erweiterung für Arduino IDE
+Damit die ATtiny Serie Programmierbar mit der Arduino IDE sind, muss man die Erweiterung **http://drazzy.com/package_drazzy.com_index.json** in den Voreinstellungen hinzufügen.
+Und danach bei Update das Modul aktivieren.
+
+
+
