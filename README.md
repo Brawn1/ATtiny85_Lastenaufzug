@@ -42,7 +42,7 @@ aktiv sind, aber man muss es ja nicht fordern.
 
 Kurze Funktionsvorführung
 
-[![Funktionstest](https://youtu.be/YJzWT5fqY5Q/3.JPG)(https://youtu.be/YJzWT5fqY5Q)
+[![Funktionstest](https://www.youtube.com/upload_thumbnail?v=YJzWT5fqY5Q&t=1&ts=1492364460589)](https://youtu.be/YJzWT5fqY5Q)
 
 Werde ein Video dazu noch nachreichen, sobald es etwas Wärmer ist. ;-)
 
