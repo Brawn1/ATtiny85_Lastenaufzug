@@ -93,8 +93,8 @@ unsigned long relaistime = 60000L; // Schalte die Relais Versorgungsspannung nac
 // einen bestimmten Weg zuruecklegen.
 // unser Lastenaufzug schaft 6m pro Minute somit habe ich es auf 2m selbstfahren beschraenkt
 unsigned long worktime = 6000L;
-// vom 1.OG runter in das EG braucht es ca. 14 Sekunden.
-unsigned long worktimeto_eg = 14000L;
+// vom 1.OG runter in das EG braucht es ca. 17 Sekunden.
+unsigned long worktimeto_eg = 17000L;
 
 unsigned long task2 = 0;
 
