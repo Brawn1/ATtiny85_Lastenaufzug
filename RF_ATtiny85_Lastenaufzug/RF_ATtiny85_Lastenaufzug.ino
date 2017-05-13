@@ -68,14 +68,15 @@
  * 
  */
 #include <RemoteReceiver.h>
-char version = "1.2";
+
 int RO = PB1; // LOW = Versorge Relais (VCC) mit Spannung HIGH = schalte Spannung ab (PNP Transistor)
 int S1 = PB4; // Relais 1
 int S2 = PB3; // Relais 2
 /*
-int RO = 8;
-int S1 = 9;
-int S2 = 10;
+int RO = 4;
+int S1 = 7;
+int S2 = 8;
+char v[4]="1.2";
 */
 // da bei ATtiny85 bereits alle Pins gebraucht werden, muessen wir uns mit einem Boolean Feld zufrieden geben.
 // die Boolean Felder sind fuer uns sozusagen der Ersatz von 2 zusaetzlichen Input Pins
@@ -86,8 +87,8 @@ boolean ROState=false;
 // Boolean Felder Raten.
 boolean floor_og=false;
 boolean floor_eg=false;
+boolean chkfix=true;
 
-char mode[4]; // ein Reservierter Speicher fuer Modus ON / OFF
 unsigned long relaistime = 60000L; // Schalte die Relais Versorgungsspannung nach 1min. ab.
 // Wie lange das Relais den Status ON hat bis es wieder abgeschalten wird. Somit kann es
 // einen bestimmten Weg zuruecklegen.
@@ -107,14 +108,20 @@ void setup() {
   digitalWrite(S2, HIGH);
   digitalWrite(RO, HIGH); // Pin auf HIGH Setzen
   
-  RemoteReceiver::init(0, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
+  RemoteReceiver::init(1, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
 
   //only for tests
-  //Serial.begin(19200);
-  //Serial.println("Start programm");
+  /*
+  Serial.begin(115200);
+  Serial.print(F("Arduino Lastenaufzug v"));
+  Serial.println(v);
+  Serial.println(F("=========================="));
+  getboolstates();
+  */
 }
 
-void SWRelais(char mode){
+
+void SWRelais(char mode[3]){
   /*
    * Powerswitch for relais modul
    */
@@ -131,46 +138,49 @@ void SWRelais(char mode){
     digitalWrite(RO, HIGH);
     ROState=false;
   }
-  //Serial.println(ROState);
 }
 
-void SecRelais1(char mode){
+
+void SecRelais1(char mode[3]){
   /*
    * Relais 1 with state check (DOWN)
    */
   if (mode == "ON") {
+    //Serial.println(F("SecRelais1 = mode ON"));
     if (S1State == false && S2State == false) {
+      //Serial.println(F("SecRelais1 = ON, state = true"));
       S1State=true;
-      //liftdown=true;
-      //liftup=false;
       digitalWrite(S1, LOW);
     } else if (S1State == false && S2State == true) {
+      //Serial.println(F("SecRelais1 = ON, state = true"));
       digitalWrite(S2, HIGH);
       S2State=false;
-      //liftup=false;
       delay(80);
       S1State=true;
-      //liftdown=true;
       digitalWrite(S1, LOW);
     } else if (S1State == true && S2State == false) {
       // do nothing
     }
   } else {
+    //Serial.print(F("SecRelais1 mode = "));
+    //Serial.println(mode);
     digitalWrite(S1, HIGH);
     S1State=false;
   }
-  //Serial.println(S1State);
 }
 
-void SecRelais2(char mode){
+
+void SecRelais2(char mode[3]) {
   /*
    * Relais 2 with state check (UP)
    */
   if (mode == "ON") {
     if (S2State == false && S1State == false) {
+      //Serial.println(F("SecRelais2 = ON, state = true"));
       S2State=true;
       digitalWrite(S2, LOW);
     } else if (S2State == false && S1State == true) {
+      //Serial.println(F("SecRelais1 = ON, state = true"));
       digitalWrite(S1, HIGH);
       S1State=false;
       delay(80);
@@ -183,26 +193,25 @@ void SecRelais2(char mode){
     digitalWrite(S2, HIGH);
     S2State=false;
   }
-  //Serial.println(S2State);
 }
+
 
 //Callback function is called only when a valid code is received.
 char checkCode(unsigned long receivedCode, unsigned int period){
   //Note: interrupts are disabled. You can re-enable them if needed.
 
   //print received code
-  //Serial.print("Code = ");
-  //Serial.println(receivedCode);
-
+  /*
+  Serial.print("Code = ");
+  Serial.println(receivedCode);
+  getboolstates();
+  */
+  
   if (receivedCode == 531272) {
     task2 = millis();
     //Serial.println("Switch Relais 1 ON");
-    if (floor_og == true && floor_eg == true) {
-      // do nothing
-    } else {
-      SWRelais("ON");
-      SecRelais1("ON");
-    }
+    SWRelais("ON");
+    SecRelais1("ON");
   
   } else if (receivedCode == 531380) {
     //Serial.println("Switch Relais 2 ON");
@@ -217,57 +226,149 @@ char checkCode(unsigned long receivedCode, unsigned int period){
   }
 }
 
+/*
+void getboolstates(){
+*/
+  /*
+   * print all boolean states
+   */
+  /*
+  Serial.print(F("floor_eg = "));
+  Serial.println(floor_eg);
+  Serial.print(F("floor_og = "));
+  Serial.println(floor_og);
+  Serial.print(F("S1State = "));
+  Serial.println(S1State);
+  Serial.print(F("chkfix = "));
+  Serial.println(chkfix);
+  Serial.print(F("S2State = "));
+  Serial.println(S2State);
+  Serial.print(F("ROState = "));
+  Serial.println(ROState);
+  Serial.println(F("---------------------------"));
+}
+*/
 
 void loop() {
   unsigned long currmillis = millis();
 
   // weg von der Winde zum 1.OG
-  if (floor_eg == false && floor_og == false && S2State == true) {
+  if (floor_eg == false && floor_og == false && S1State == true) {
+    /*
+    if ((unsigned long)(currmillis - task2) == 2000){
+      Serial.println(F("start -> 1.OG"));
+    }
+    */
     if ((unsigned long)(currmillis - task2) >= worktime) {
       if ( S1State == true || S2State == true ) {
-        //Serial.println("Switch Relais after worktime OFF");
+        //Serial.println(F("Switch Relais after worktime OFF, start -> 1.OG"));
         SecRelais1("OFF");
         SecRelais2("OFF");
         floor_og=true;
+        //getboolstates();
       }
     }
-    // weg vom 1.OG nach EG
-  } else if (floor_eg == false && floor_og == true && S2State == true) {
+  }
+  // weg vom 1.OG nach EG
+  else if (floor_eg == false && floor_og == true && S1State == true) {
+    /*
+    if ((unsigned long)(currmillis - task2) == 2000){
+      Serial.println(F("1.OG -> EG"));
+    }
+    */
     if ((unsigned long)(currmillis - task2) >= worktimeto_eg) {
       if ( S1State == true || S2State == true ) {
-        //Serial.println("Switch Relais after worktime OFF");
+        //Serial.println(F("Switch Relais after worktime OFF, 1.OG -> EG"));
         SecRelais1("OFF");
         SecRelais2("OFF");
         floor_eg=true;
+        chkfix=true;
+        //getboolstates();
       }
     }
-    // zueruck auf das 1.OG
-  } else if (floor_eg == true && floor_og == true && S1State == true) {
+  }
+  // zueruck auf das 1.OG
+  else if (floor_eg == true && floor_og == true && S2State == true) {
+    /*
+    if ((unsigned long)(currmillis - task2) == 2000){
+      Serial.println(F("EG -> 1.OG"));
+    }
+    */
     if ((unsigned long)(currmillis - task2) >= worktimeto_eg) {
       if ( S1State == true || S2State == true ) {
-        //Serial.println("Switch Relais after worktime OFF");
+        //Serial.println(F("Switch Relais after worktime OFF, EG -> 1.OG"));
         SecRelais1("OFF");
         SecRelais2("OFF");
         floor_eg=false;
+        chkfix=false;
+        //getboolstates();
       }
     }
-    // zurueck auf start
-  } else if (floor_eg == false && floor_og == true && S1State == true) {
+  }
+  // zurueck auf start
+  else if (floor_eg == false && floor_og == true && S2State == true) {
+    /*
+    if ((unsigned long)(currmillis - task2) == 2000){
+      Serial.println(F("1.OG -> start"));
+    }
+    */
     if ((unsigned long)(currmillis - task2) >= worktime) {
       if ( S1State == true || S2State == true ) {
-        //Serial.println("Switch Relais after worktime OFF");
+        //Serial.println(F("Switch Relais after worktime OFF, 1.OG -> start"));
         SecRelais1("OFF");
         SecRelais2("OFF");
         floor_og=false;
+        //getboolstates();
       }
     }
   } 
-  
+
+  // steuerung weiter verwenden falls auch schon ganz unten ist
+  // allerdings nur 5 Sekunden selbstfahren
+  else if (floor_eg == true && floor_og == true && chkfix == true && S1State == true) {
+    /*
+    if ((unsigned long)(currmillis - task2) == 2000){
+      Serial.println(F("Down run 5 seconds"));
+    }
+    */
+    if ((unsigned long)(currmillis - task2) >= 5000) {
+      if ( S1State == true || S2State == true ) {
+        //Serial.println(F("Switch Relais after worktime OFF, run down 5 sec"));
+        SecRelais1("OFF");
+        SecRelais2("OFF");
+        floor_eg=true;
+        floor_og=true;
+        chkfix=true;
+        //getboolstates();
+      }
+    }
+  }
+  // steuerung weiter verwenden falls auch wenn es schon anscheinend ganz oben ist
+  // allerdings nur 5 Sekunden selbstfahren
+  else if (floor_eg == false && floor_og == false && chkfix == false && S2State == true) {
+    /*
+    if ((unsigned long)(currmillis - task2) == 2000){
+      Serial.println(F("Up run 5 seconds"));
+    }
+    */
+    if ((unsigned long)(currmillis - task2) >= 5000) {
+      if ( S1State == true || S2State == true ) {
+        //Serial.println(F("Switch Relais after worktime OFF, run up 5 sec"));
+        SecRelais1("OFF");
+        SecRelais2("OFF");
+        //floor_eg=false;
+        //floor_eg_fix=false;
+        //getboolstates();
+      }
+    }
+  }
+
   // schalte das Relais nach eingestellter Zeit aus
   if ((unsigned long)(currmillis - task2) >= relaistime) {
     if (ROState == true) {
-      //Serial.println("switch Relais OFF");
+      //Serial.println(F("interrupt Relais Power"));
       SWRelais("OFF");
+      //getboolstates();
     }
   }
 }
