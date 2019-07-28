@@ -108,7 +108,7 @@ void setup() {
   digitalWrite(S2, HIGH);
   digitalWrite(RO, HIGH); // Pin auf HIGH Setzen
   
-  RemoteReceiver::init(1, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
+  RemoteReceiver::init(0, 0, 3, checkCode, 0); //RemoteReceiver::init(type, interrupt-pin, min-Repeats, callback-function, PulseWidth);
 
   //only for tests
   /*
@@ -207,19 +207,19 @@ char checkCode(unsigned long receivedCode, unsigned int period){
   getboolstates();
   */
   
-  if (receivedCode == 531272) {
+  if (receivedCode == 531272 || receivedCode == 531363) {
     task2 = millis();
     //Serial.println("Switch Relais 1 ON");
     SWRelais("ON");
     SecRelais1("ON");
   
-  } else if (receivedCode == 531380) {
+  } else if (receivedCode == 531380 || receivedCode == 531364) {
     //Serial.println("Switch Relais 2 ON");
     task2 = millis();
     SWRelais("ON");
     SecRelais2("ON");
   
-  } else if ( receivedCode == 531276 || receivedCode == 531436 || receivedCode == 531384) {
+  } else if ( receivedCode == 531276 || receivedCode == 531436 || receivedCode == 531384 || receivedCode == 531368) {
     //Serial.println("Switch Relais 1 and 2 OFF");
     SecRelais2("OFF");
     SecRelais1("OFF");
